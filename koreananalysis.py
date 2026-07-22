@@ -27,16 +27,27 @@ def analyze_cognitive_state(text_list):
     words = full_text.split()
     total_words = max(len(words), 1)
 
+    # 1. 어휘 감지 횟수 계산
     ambiguity_count = sum(len(re.findall(w, full_text)) for w in AMBIGUITY_WORDS)
     causal_count = sum(len(re.findall(w, full_text)) for w in CAUSAL_WORDS)
     pronoun_count = sum(len(re.findall(w, full_text)) for w in PRONOUN_WORDS)
 
+    # 2. 전체 어절 대비 비율(%) 산출
     ambiguity_density = (ambiguity_count / total_words) * 100
     causal_density = (causal_count / total_words) * 100
     pronoun_density = (pronoun_count / total_words) * 100
 
-    raw_score = (ambiguity_density * 40) + (causal_density * 35) + (pronoun_density * 25)
-    final_score = round(min(100.0, max(10.0, raw_score * 1.5)), 1)
+    # 3. 보정된 가중치 점수 계산 (과도한 뻥튀기 방지)
+    # 단어가 1~2개 감지된 경우(밀도 5~10%) 적정 점수가 나오도록 계수 조정
+    ambiguity_score = ambiguity_density * 3.5
+    causal_score = causal_density * 2.5
+    pronoun_score = pronoun_density * 1.5
+
+    # 기본점수 10점 + 측정 점수
+    raw_score = 10.0 + ambiguity_score + causal_score + pronoun_score
+    
+    # 최종 점수 (최소 10점 ~ 최대 100점)
+    final_score = round(min(100.0, max(10.0, raw_score)), 1)
 
     return {
         'score': final_score,
@@ -45,7 +56,6 @@ def analyze_cognitive_state(text_list):
         'pronoun': pronoun_count,
         'total_words': total_words
     }
-
 # --- UI 레이아웃 ---
 st.title("🧠 인지 언어 기반 스트레스 진단")
 st.caption("뇌인지과학과 자연어 처리(NLP) 기술을 결합하여, 당신의 언어 패턴 속에 숨겨진 인지적 피로도를 분석합니다.")
